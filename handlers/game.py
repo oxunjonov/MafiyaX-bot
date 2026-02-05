@@ -117,6 +117,143 @@ O'yinga qo'shilish uchun "✅ Qo'shilish" tugmasini bosing!
 
 @router.callback_query(F.data == "leave_game")
 async def callback_leave_game(callback: CallbackQuery):
+from aiogram import Router, F
+from aiogram.filters import Command
+from aiogram.types import Message, CallbackQuery
+from database.db import db
+from utils.language import get_language_module, get_group_language
+from keyboards.inline import get_game_join_keyboard, get_game_modes_keyboard
+import asyncio
+from typing import Dict, List
+
+router = Router()
+
+# Guruhlar uchun aktiv o'yinlar
+active_games: Dict[int, dict] = {}
+
+@router.message(Command("game"))
+async def cmd_game(message: Message):
+    """O'yin yaratish buyrug'i"""
+    # Faqat guruhlarda ishlaydi
+    if message.chat.type not in ["group", "supergroup"]:
+        user_id = message.from_user.id
+        language = await get_user_language(db, user_id)
+        lang_data = get_language_module(language)
+        await message.answer(lang_data.ERROR_GROUP_ONLY)
+        return
+    
+    # Admin tekshiruvi
+    from aiogram import Bot
+    from config import BOT_TOKEN
+    bot = Bot(token=BOT_TOKEN)
+    
+    user_id = message.from_user.id
+    try:
+        chat_member = await bot.get_chat_member(message.chat.id, user_id)
+        is_admin = chat_member.status in ["creator", "administrator"]
+    except:
+        is_admin = False
+    
+    if not is_admin:
+        language = await get_group_language(db, message.chat.id)
+        lang_data = get_language_module(language)
+        await message.answer(lang_data.ERROR_ADMIN_ONLY)
+        return
+    
+    group_id = message.chat.id
+    group_name = message.chat.title
+    
+    # Guruhni bazaga qo'shish
+    await db.add_group(group_id, group_name)
+    
+    # Guruh tilini olish
+    language = await get_group_language(db, group_id)
+    lang_data = get_language_module(language)
+    
+    # Agar o'yin allaqachon boshlanган bo'lsa
+    if group_id in active_games:
+        await message.answer(lang_data.GAME_ALREADY_RUNNING)
+        return
+    
+    # Yangi o'yin yaratish
+    active_games[group_id] = {
+        "players": [],
+        "status": "waiting",
+        "mode": "classic",
+        "creator": message.from_user.id
+    }
+    
+    game_text = f"""
+🎮 **MAFIYA X - Yangi O'yin / New Game**
+
+O'yinga qo'shilish uchun "✅ Qo'shilish" tugmasini bosing!
+Click "✅ Join" to join the game!
+
+👥 O'yinchilar / Players: 0
+📊 Minimum: 4 o'yinchi kerak
+"""
+    
+    await message.answer(
+        game_text,
+        reply_markup=get_game_join_keyboard(lang_data),
+        parse_mode="Markdown"
+    )
+
+@router.callback_query(F.data == "join_game")
+async def callback_join_game(callback: CallbackQuery):
+    """O'yinga qo'shilish"""
+    group_id = callback.message.chat.id
+    user_id = callback.from_user.id
+    user_name = callback.from_user.first_name
+    
+    if group_id not in active_games:
+        await callback.answer("❌ O'yin topilmadi!", show_alert=True)
+        return
+    
+    game = active_games[group_id]
+    
+    # Agar o'yinchi allaqachon qo'shilган bo'lsa
+    if user_id in [p["id"] for p in game["players"]]:
+        await callback.answer("⚠️ Siz allaqachon qo'shilgansiz!", show_alert=True)
+        return
+    
+    # O'yinchini qo'shish
+    game["players"].append({
+        "id": user_id,
+        "name": user_name,
+        "role": None,
+        "alive": True
+    })
+    
+    # Matnni yangilash
+    players_count = len(game["players"])
+    players_list = "\n".join([f"{i+1}. {p['name']}" for i, p in enumerate(game["players"])])
+    
+    game_text = f"""
+🎮 **MAFIYA X - Yangi O'yin / New Game**
+
+O'yinga qo'shilish uchun "✅ Qo'shilish" tugmasini bosing!
+
+👥 O'yinchilar / Players: {players_count}
+📊 Minimum: 4 o'yinchi kerak
+
+**Ro'yxat / List:**
+{players_list}
+"""
+    
+    language = await get_group_language(db, group_id)
+    lang_data = get_language_module(language)
+    
+    await callback.message.edit_text(
+        game_text,
+        reply_markup=get_game_join_keyboard(lang_data),
+        parse_mode="Markdown"
+    )
+    
+    await callback.answer(f"✅ {user_name} qo'shildi!")
+
+@router.callback_query(F.data == "leave_game")
+async def callback_leave_game(callback: CallbackQuery):
     """O'yindan chiqish"""
     group_id = callback.message.chat.id
     user_id = callback.from_user.id
@@ -262,4 +399,3 @@ async def assign_roles(group_id: int):
     
     # O'yin jarayonini boshlash (keyingi bosqichda)
     game["status"] = "night"
-      
