@@ -159,4 +159,3 @@ class Database:
 
 # Database singleton
 db = Database()
-          
