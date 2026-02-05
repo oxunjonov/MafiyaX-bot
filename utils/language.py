@@ -23,4 +23,3 @@ async def get_group_language(db, group_id: int) -> str:
     if group:
         return group['language']
     return DEFAULT_LANGUAGE
-  
