@@ -113,5 +113,5 @@ MIT License
 ---
 
 **Yaratuvchilar:**
-- Odilbek - Bosh dasturchi
-- Xusanov - G'oya muallifi
+- ABDUSAMIGʻ - Bosh dasturchi
+- OXUNJONOV - G'oya muallifi
