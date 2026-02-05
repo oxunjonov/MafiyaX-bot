@@ -342,11 +342,23 @@ async def start_game_process(bot: Bot, group_id: int, lang_data):
     # Har bir o'yinchiga rolini yuborish (bot start bosmagan bo'lsa ham!)
     await send_roles_to_players(bot, game, lang_data)
     
-    # O'yin boshlandi xabari
+    # O'yin boshlandi xabari - Rolni ko'rish tugmasi bilan
+    role_button = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="🎭 Rolni ko'rish / View Role",
+                url=f"https://t.me/{(await bot.me()).username}?start=myrole"
+            )
+        ]
+    ])
+    
     await bot.send_message(
         group_id,
-        f"✅ {lang_data.GAME_STARTED}\n\n🌙 **TUN 1** boshlandi...",
-        parse_mode="Markdown"
+        f"✅ {lang_data.GAME_STARTED}\n\n"
+        f"🌙 **TUN 1** boshlandi...\n\n"
+        f"💡 Rolni ko'rish uchun pastdagi tugmani bosing!",
+        parse_mode="Markdown",
+        reply_markup=role_button
     )
     
     # O'yin statusini yangilash

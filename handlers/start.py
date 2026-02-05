@@ -1,6 +1,6 @@
 from aiogram import Router, F
 from aiogram.filters import CommandStart, Command
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from database.db import db
 from utils.language import get_language_module, get_user_language
 from keyboards.inline import get_main_menu, get_language_keyboard, get_back_button
@@ -21,10 +21,40 @@ async def cmd_start(message: Message):
     language = await get_user_language(db, user_id)
     lang_data = get_language_module(language)
     
+    # Inline keyboard - Guruhga qo'shish tugmasi bilan
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text="➕ Guruhga qo'shish / Add to Group",
+                url=f"https://t.me/{(await message.bot.me()).username}?startgroup=true"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text=lang_data.BTN_HELP,
+                callback_data="help"
+            ),
+            InlineKeyboardButton(
+                text=lang_data.BTN_RULES,
+                callback_data="rules"
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text=lang_data.BTN_LANGUAGE,
+                callback_data="change_language"
+            ),
+            InlineKeyboardButton(
+                text=lang_data.BTN_PROFILE,
+                callback_data="profile"
+            )
+        ]
+    ])
+    
     # Javob yuborish
     await message.answer(
         lang_data.START_MESSAGE,
-        reply_markup=get_main_menu(lang_data),
+        reply_markup=keyboard,
         parse_mode="Markdown"
     )
 
@@ -166,6 +196,63 @@ async def cmd_profile(message: Message):
         await message.answer(profile_text, parse_mode="Markdown")
     else:
         await message.answer(lang_data.ERROR_OCCURRED)
+
+@router.message(Command("myrole"))
+async def cmd_myrole(message: Message):
+    """Rolni ko'rish - o'yin davomida"""
+    from utils.game_manager import game_manager
+    from config import ROLE_EMOJI
+    
+    user_id = message.from_user.id
+    language = await get_user_language(db, user_id)
+    lang_data = get_language_module(language)
+    
+    # Barcha guruhlardagi o'yinlarni tekshirish
+    user_role_info = None
+    user_game_group = None
+    
+    for group_id, game in game_manager.games.items():
+        if game.status in ["registration", "starting", "night", "day", "voting"]:
+            player = game.get_player(user_id)
+            if player and player.role:
+                user_role_info = player
+                user_game_group = group_id
+                break
+    
+    if not user_role_info:
+        await message.answer(
+            "❌ Siz hozir hech qanday o'yinda qatnashmayapsiz yoki rol hali tarqatilmagan!\n\n"
+            "❌ You are not in any active game or roles haven't been assigned yet!"
+        )
+        return
+    
+    # Rol ma'lumotlari
+    role_name = lang_data.__dict__.get(f"ROLE_{user_role_info.role.upper()}", user_role_info.role)
+    role_icon = ROLE_EMOJI.get(user_role_info.role, "🎭")
+    
+    # Jamoa ma'lumoti
+    if user_role_info.team == "mafia":
+        team_info = lang_data.TEAM_MAFIA
+    elif user_role_info.team == "citizen":
+        team_info = lang_data.TEAM_CITIZEN
+    else:
+        team_info = lang_data.TEAM_INDEPENDENT
+    
+    # Rol vazifasi
+    role_task = lang_data.__dict__.get(f"TASK_{user_role_info.role.upper()}", "O'yinda qatnashing")
+    
+    # Rol tavsifi
+    role_description = f"Siz {role_name}siz!"
+    
+    role_text = lang_data.ROLE_NOTIFICATION.format(
+        role_icon=role_icon,
+        role_name=role_name,
+        role_description=role_description,
+        team_info=team_info,
+        role_task=role_task
+    )
+    
+    await message.answer(role_text, parse_mode="Markdown")
 
 @router.callback_query(F.data == "profile")
 async def callback_profile(callback: CallbackQuery):
