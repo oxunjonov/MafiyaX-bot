@@ -16,10 +16,16 @@ MAX_PLAYERS = 50
 DEFAULT_LANGUAGE = "uz"
 
 # Vaqt sozlamalari (soniyalarda)
+REGISTRATION_TIME = 300  # 5 daqiqa
 NIGHT_TIME = 60  # 1 daqiqa
 DAY_TIME = 120  # 2 daqiqa
 VOTE_TIME = 90  # 1.5 daqiqa
 LAST_WORD_TIME = 30  # 30 soniya
+
+# Anti-spam sozlamalari
+MAX_GAMES_PER_USER = 1
+COMMAND_COOLDOWN = 3
+MESSAGE_CLEANUP_DELAY = 5
 
 # Qo'llab-quvvatlanadigan tillar
 SUPPORTED_LANGUAGES = {
@@ -29,6 +35,16 @@ SUPPORTED_LANGUAGES = {
     "tr": "🇹🇷 Türkçe",
     "fa": "🇮🇷 فارسی",
     "az": "🇦🇿 Azərbaycan"
+}
+
+# Rol emoji lar
+ROLE_EMOJI = {
+    "don": "🤵",
+    "mafia": "🤵‍♂️",
+    "komissar": "🕵️",
+    "citizen": "👨",
+    "doctor": "👨‍⚕️",
+    "killer": "🔪"
 }
 
 # Emoji va belgilar
@@ -45,5 +61,13 @@ EMOJI = {
     "diamond": "💎",
     "dollar": "💵",
     "shield": "🛡",
-    "gun": "🔫"
+    "gun": "🔫",
+    "check": "✅",
+    "cross": "❌",
+    "clock": "⏰",
+    "bell": "🔔",
+    "fire": "🔥",
+    "trophy": "🏆",
+    "star": "⭐",
+    "sparkles": "✨"
 }
