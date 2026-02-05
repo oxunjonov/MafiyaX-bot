@@ -164,4 +164,3 @@ def get_back_button(lang_data):
         ]
     ])
     return keyboard
-  
