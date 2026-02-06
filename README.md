@@ -294,5 +294,5 @@ MIT License
 ---
 
 **Yaratuvchilar:**
-- Abdusamigʻ - Bosh dasturchi
-
+- Odilbek - Bosh dasturchi
+- Xusanov - G'oya muallifi
