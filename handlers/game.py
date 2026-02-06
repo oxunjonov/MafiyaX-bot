@@ -55,6 +55,12 @@ async def cmd_game(message: Message, bot: Bot):
     group_name = message.chat.title
     user_id = message.from_user.id
     
+    # Buyruq xabarini o'chirish (bot admin bo'lsa)
+    try:
+        await bot.delete_message(group_id, message.message_id)
+    except:
+        pass
+    
     # Guruhni bazaga qo'shish
     await db.add_group(group_id, group_name)
     
@@ -419,7 +425,12 @@ async def cmd_stop_game(message: Message, bot: Bot):
     # O'yin mavjudligini tekshirish
     game = game_manager.get_game(group_id)
     if not game:
-        await message.answer(lang_data.ERROR_NO_GAME)
+        # Buyruqni o'chirish (bot admin bo'lsa)
+        try:
+            await bot.delete_message(group_id, message.message_id)
+        except:
+            pass
+        await message.answer(lang_data.ERROR_NO_GAME, reply_to_message_id=None)
         return
     
     # Ruxsat tekshiruvi
@@ -427,8 +438,19 @@ async def cmd_stop_game(message: Message, bot: Bot):
     is_admin_user = await is_admin(bot, group_id, user_id)
     
     if not (is_creator or is_admin_user):
+        # Buyruqni o'chirish
+        try:
+            await bot.delete_message(group_id, message.message_id)
+        except:
+            pass
         await message.answer(lang_data.ERROR_GAME_CREATOR_ONLY)
         return
+    
+    # Buyruqni o'chirish
+    try:
+        await bot.delete_message(group_id, message.message_id)
+    except:
+        pass
     
     # Timer to'xtatish
     await timer_manager.stop_timer(group_id)
@@ -439,4 +461,4 @@ async def cmd_stop_game(message: Message, bot: Bot):
     # Xabarlarni tozalash
     await message_cleaner.delete_all(bot, group_id)
     
-    await message.answer("🛑 O'yin to'xtatildi va tozalandi.")
+    await bot.send_message(group_id, "🛑 O'yin to'xtatildi va tozalandi.")
