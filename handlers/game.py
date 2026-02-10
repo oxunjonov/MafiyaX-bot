@@ -593,11 +593,12 @@ async def announce_winner(bot: Bot, group_id: int, winner: str):
 
 @router.message(Command("stop"))
 async def cmd_stop_game(message: Message, bot: Bot):
-    """O'yinni to'xtatish - MUKAMMAL"""
+    """O'yinni to'xtatish - MUKAMMAL TUZATILGAN"""
     if message.chat.type not in ["group", "supergroup"]:
         return
     
     group_id = message.chat.id
+    user_id = message.from_user.id
     
     # Buyruqni o'chirish
     try:
@@ -605,7 +606,9 @@ async def cmd_stop_game(message: Message, bot: Bot):
     except:
         pass
     
+    # O'yin mavjudligini tekshirish
     game = game_manager.get_game(group_id)
+    
     if not game:
         msg = await bot.send_message(group_id, "❌ Hozir o'yin yo'q!")
         await asyncio.sleep(3)
@@ -615,9 +618,9 @@ async def cmd_stop_game(message: Message, bot: Bot):
             pass
         return
     
-    # Ruxsat
-    is_creator = message.from_user.id == game.creator_id
-    is_admin_user = await is_admin(bot, group_id, message.from_user.id)
+    # Ruxsat tekshiruvi
+    is_creator = user_id == game.creator_id
+    is_admin_user = await is_admin(bot, group_id, user_id)
     
     if not (is_creator or is_admin_user):
         msg = await bot.send_message(group_id, "⚠️ Faqat yaratuvchi yoki admin to'xtatishi mumkin!")
@@ -628,11 +631,15 @@ async def cmd_stop_game(message: Message, bot: Bot):
             pass
         return
     
-    # To'xtatish
-    await timer_manager.stop_timer(group_id)
-    game_manager.delete_game(group_id)
+    # MUHIM: Timer ni to'xtatish
+    if timer_manager.has_timer(group_id):
+        await timer_manager.stop_timer(group_id)
     
-    # Tozalash
+    # MUHIM: O'yinni tugatish va o'chirish
+    game.status = "finished"
+    game_manager.end_game(group_id)
+    
+    # Storage larni tozalash
     if group_id in night_actions_storage:
         del night_actions_storage[group_id]
     if group_id in voting_storage:
@@ -640,6 +647,15 @@ async def cmd_stop_game(message: Message, bot: Bot):
     if group_id in active_voting_messages:
         del active_voting_messages[group_id]
     
+    # Xabarlarni tozalash
     await message_cleaner.delete_all(bot, group_id)
     
-    await bot.send_message(group_id, "🛑 O'yin to'xtatildi va tozalandi.")
+    # Tasdiqlash xabari
+    confirm_msg = await bot.send_message(group_id, "🛑 **O'yin to'xtatildi va tozalandi.**", parse_mode="Markdown")
+    
+    # 5 soniyadan keyin tasdiqlash xabarini ham o'chirish
+    await asyncio.sleep(5)
+    try:
+        await bot.delete_message(group_id, confirm_msg.message_id)
+    except:
+        pass
